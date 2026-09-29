@@ -2,26 +2,130 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    color-scheme: dark;
+    --background: 222 44% 4%;
+    --foreground: 210 40% 96%;
+    --card: 222 36% 7%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 36% 7%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 50 100% 52%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 92%;
+    --muted: 220 22% 14%;
+    --muted-foreground: 216 16% 66%;
+    --accent: 50 100% 52%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 78% 58%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 213 22% 18%;
+    --input: 213 22% 18%;
+    --ring: 190 95% 58%;
+    --radius: 0.5rem;
   }
-}
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    min-height: 100%;
+    background: hsl(var(--background));
+    scroll-behavior: auto;
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    @apply min-h-screen bg-background text-foreground antialiased;
+    background: hsl(var(--background));
+    font-family: var(--font-geist-sans), Inter, system-ui, sans-serif;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: #ffd60a;
+    color: #000000;
+  }
+
+  img,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  canvas {
+    touch-action: pan-y;
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .section-grid {
+    background-image:
+      linear-gradient(hsl(var(--foreground) / 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.045) 1px, transparent 1px);
+    background-size: 4rem 4rem;
+    mask-image: linear-gradient(to bottom, transparent, black 12%, black 82%, transparent);
+  }
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+* {
+  scrollbar-color: #ffd60a #000000;
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  height: 0.625rem;
+  width: 0.625rem;
+}
+
+*::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #ffd60a;
+  border: 2px solid #000000;
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }

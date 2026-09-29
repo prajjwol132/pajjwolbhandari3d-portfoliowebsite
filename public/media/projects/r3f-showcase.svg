@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">React Three Fiber showcase preview</title>
+  <desc id="desc">Dark 3D cube scene with luminous cyan and red lighting accents.</desc>
+  <defs>
+    <radialGradient id="glow" cx="55%" cy="42%" r="60%">
+      <stop offset="0" stop-color="#174b57"/>
+      <stop offset="0.42" stop-color="#091019"/>
+      <stop offset="1" stop-color="#030407"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#glow)"/>
+  <path d="M640 122 946 300 640 478 334 300Z" fill="#171d28" stroke="#39495b" stroke-width="3"/>
+  <path d="M640 478 946 300v210L640 688Z" fill="#0c111a" stroke="#39495b" stroke-width="3"/>
+  <path d="M640 478 334 300v210l306 178Z" fill="#070a10" stroke="#39495b" stroke-width="3"/>
+  <path d="M366 520h548" stroke="#ff1f36" stroke-width="16"/>
+  <path d="M420 286h440" stroke="#55ecff" stroke-width="14"/>
+  <g opacity="0.25" stroke="#ffffff" stroke-width="1">
+    <path d="M128 120h1024M128 600h1024"/>
+    <path d="M220 72v576M1060 72v576"/>
+  </g>
+  <circle cx="908" cy="224" r="72" fill="#55ecff" opacity="0.08"/>
+  <circle cx="364" cy="514" r="86" fill="#ff1f36" opacity="0.1"/>
+</svg>

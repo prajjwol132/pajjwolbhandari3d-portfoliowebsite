@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Developer Portfolio Engine interface preview</title>
+  <desc id="desc">Dark dashboard-style software interface with red telemetry accents.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#05070b"/>
+      <stop offset="0.55" stop-color="#10141d"/>
+      <stop offset="1" stop-color="#21070d"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" x2="1">
+      <stop offset="0" stop-color="#ff1f36"/>
+      <stop offset="1" stop-color="#55ecff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <g opacity="0.2" stroke="#ffffff" stroke-width="1">
+    <path d="M0 120h1280M0 240h1280M0 360h1280M0 480h1280M0 600h1280"/>
+    <path d="M160 0v720M320 0v720M480 0v720M640 0v720M800 0v720M960 0v720M1120 0v720"/>
+  </g>
+  <rect x="80" y="88" width="1120" height="544" fill="#020307" opacity="0.78" stroke="#263241"/>
+  <rect x="126" y="136" width="300" height="72" fill="#0b1018" stroke="#34404d"/>
+  <rect x="126" y="246" width="458" height="252" fill="#080d14" stroke="#273342"/>
+  <rect x="626" y="246" width="528" height="252" fill="#080d14" stroke="#273342"/>
+  <path d="M162 428 286 316l110 72 146-118" fill="none" stroke="url(#accent)" stroke-width="12" stroke-linecap="square"/>
+  <path d="M672 430h410M672 376h340M672 322h248" stroke="#e9eef8" stroke-width="18" opacity="0.75"/>
+  <path d="M126 558h248M420 558h220M686 558h292" stroke="#ff1f36" stroke-width="10"/>
+  <circle cx="1088" cy="156" r="42" fill="#ff1f36" opacity="0.18"/>
+  <circle cx="1088" cy="156" r="18" fill="#ff1f36"/>
+</svg>
