@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { fallbackCategories, fallbackProjects, selectedVideoProjects } from "@/data/portfolio-projects";
+import { isVideoProject } from "@/lib/project-kind";
 import { createClient } from "@/lib/supabase/client";
 import type { Category, Project, ProjectWithCategory } from "@/types/database";
 
@@ -25,150 +27,9 @@ type SupabaseProjectRow = Project & {
   category: Category | Category[] | null;
 };
 
-const fallbackCategories: Category[] = [
-  {
-    id: "cat-web-apps",
-    name: "Web Apps",
-    slug: "web-apps",
-    description: "Full-stack products, dashboards, and portfolio systems.",
-    display_order: 1,
-    created_at: "2026-01-01T00:00:00.000Z",
-    updated_at: "2026-01-01T00:00:00.000Z",
-  },
-  {
-    id: "cat-3d-graphics",
-    name: "3D & Graphics",
-    slug: "3d-graphics",
-    description: "React Three Fiber scenes, WebGL interfaces, and visual systems.",
-    display_order: 2,
-    created_at: "2026-01-01T00:00:00.000Z",
-    updated_at: "2026-01-01T00:00:00.000Z",
-  },
-  {
-    id: "cat-video-projects",
-    name: "Video Projects",
-    slug: "video-projects",
-    description: "Motion-led media interfaces, galleries, and creative playback tools.",
-    display_order: 3,
-    created_at: "2026-01-01T00:00:00.000Z",
-    updated_at: "2026-01-01T00:00:00.000Z",
-  },
-];
-
-const fallbackProjects: ProjectWithCategory[] = [
-  {
-    id: "project-portfolio-engine",
-    category_id: "cat-web-apps",
-    category: fallbackCategories[0],
-    title: "Developer Portfolio Engine",
-    slug: "developer-portfolio-engine",
-    short_description:
-      "A Next.js 14 portfolio architecture with persistent 3D canvas, CMS-ready project data, and scroll choreography.",
-    full_description:
-      "## Problem Statement\nPrajjwol needed a portfolio that feels engineered rather than templated, with motion, project storytelling, and CMS control living in the same interface.\n\n## Solution\nThe build uses a persistent React Three Fiber canvas, Lenis smooth scrolling, GSAP ScrollTrigger timelines, and Supabase-ready content models for projects, media, and categories.\n\n## Architecture Notes\nThe project section is designed as a database-backed showcase that can filter by category, open full-screen technical modals, and support video or image galleries.",
-    tech_stack: ["Next.js 14", "TypeScript", "Supabase", "GSAP"],
-    featured_image_url: "/media/projects/portfolio-engine.svg",
-    video_url: null,
-    gallery_images: ["/media/projects/portfolio-engine.svg", "/media/projects/performance-pass.svg"],
-    github_url: "https://github.com/",
-    live_demo_url: "https://prajjwol-bhandari.dev",
-    technical_breakdown: {
-      Architecture: "Next.js 14 App Router",
-      Database: "Supabase PostgreSQL",
-      Animation: "GSAP + Lenis",
-      Rendering: "Persistent R3F canvas",
-    },
-    is_featured: true,
-    status: "published",
-    display_order: 1,
-    created_at: "2026-01-01T00:00:00.000Z",
-    updated_at: "2026-01-01T00:00:00.000Z",
-  },
-  {
-    id: "project-r3f-showcase",
-    category_id: "cat-3d-graphics",
-    category: fallbackCategories[1],
-    title: "Interactive Tech Showcase",
-    slug: "interactive-tech-showcase",
-    short_description:
-      "A low-poly developer workstation scene with dark metallic materials, red/cyan accents, and scroll-aware camera states.",
-    full_description:
-      "## Problem Statement\nA static developer portfolio would not match the visual ambition of the reference motorsport site.\n\n## Solution\nThe scene uses a GLTF workstation asset, MeshPhysicalMaterial surfaces, responsive cameras, contact shadows, and frame-level interpolation for fluid state changes.\n\n## Performance Strategy\nThe canvas caps DPR on constrained devices, reduces shadow work on touch screens, and lets HTML content carry the heavier story moments.",
-    tech_stack: ["Three.js", "R3F", "Drei", "WebGL"],
-    featured_image_url: "/media/projects/r3f-showcase.svg",
-    video_url: null,
-    gallery_images: ["/media/projects/r3f-showcase.svg", "/media/projects/portfolio-engine.svg"],
-    github_url: "https://github.com/",
-    live_demo_url: "https://prajjwol-bhandari.dev/#hero",
-    technical_breakdown: {
-      Rendering: "React Three Fiber",
-      Materials: "MeshPhysicalMaterial",
-      Lighting: "City environment + contact shadows",
-      Target: "60 FPS responsive scene",
-    },
-    is_featured: true,
-    status: "published",
-    display_order: 2,
-    created_at: "2026-01-01T00:00:00.000Z",
-    updated_at: "2026-01-01T00:00:00.000Z",
-  },
-  {
-    id: "project-media-cms",
-    category_id: "cat-video-projects",
-    category: fallbackCategories[2],
-    title: "Project Media Library",
-    slug: "project-media-library",
-    short_description:
-      "A Supabase-backed gallery architecture for repository links, live URLs, images, video previews, and case-study metadata.",
-    full_description:
-      "## Problem Statement\nMedia-heavy project pages need flexible content instead of hardcoded cards.\n\n## Solution\nEach project record stores gallery images, optional video URLs, technical metrics, external links, and a long-form markdown description for case-study storytelling.\n\n## Editorial Flow\nThe UI can surface featured projects, filter by category, and open a full-screen modal without leaving the scroll-driven portfolio experience.",
-    tech_stack: ["Supabase", "PostgreSQL", "Storage", "Radix"],
-    featured_image_url: "/media/projects/media-cms.svg",
-    video_url: null,
-    gallery_images: ["/media/projects/media-cms.svg", "/media/projects/r3f-showcase.svg"],
-    github_url: "https://github.com/",
-    live_demo_url: "https://prajjwol-bhandari.dev/#projects",
-    technical_breakdown: {
-      Content: "Dynamic project rows",
-      Media: "Gallery + video support",
-      Modal: "Radix Dialog",
-      Filtering: "Category slug + featured status",
-    },
-    is_featured: false,
-    status: "published",
-    display_order: 3,
-    created_at: "2026-01-01T00:00:00.000Z",
-    updated_at: "2026-01-01T00:00:00.000Z",
-  },
-  {
-    id: "project-performance-pass",
-    category_id: "cat-web-apps",
-    category: fallbackCategories[0],
-    title: "Mobile Performance Pass",
-    slug: "mobile-performance-pass",
-    short_description:
-      "A device-aware optimization layer with capped DPR, reduced shadows, lightweight reveals, and touch-browser fail-safes.",
-    full_description:
-      "## Problem Statement\nA cinematic WebGL interface can become expensive on mobile GPUs if every desktop effect is preserved.\n\n## Solution\nThe implementation detects weak touch browsers and shifts heavy scrubbed motion into cheaper CSS and GSAP transforms while preserving the page rhythm.\n\n## Outcome\nThe experience keeps the dark-tech design language while protecting battery, thermals, and scroll responsiveness.",
-    tech_stack: ["Lenis", "GSAP", "R3F", "Tailwind"],
-    featured_image_url: "/media/projects/performance-pass.svg",
-    video_url: null,
-    gallery_images: ["/media/projects/performance-pass.svg", "/media/projects/media-cms.svg"],
-    github_url: "https://github.com/",
-    live_demo_url: "https://prajjwol-bhandari.dev/#projects",
-    technical_breakdown: {
-      Mobile: "Touch fallback enabled",
-      Shadows: "Reduced contact shadow frames",
-      DPR: "Responsive cap",
-      UX: "Smooth scroll retained",
-    },
-    is_featured: true,
-    status: "published",
-    display_order: 4,
-    created_at: "2026-01-01T00:00:00.000Z",
-    updated_at: "2026-01-01T00:00:00.000Z",
-  },
-];
+const localVideoMediaBySlug = new Map(
+  selectedVideoProjects.map(({ slug, media }) => [slug, media]),
+);
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number) {
   let timeoutId: number | undefined;
@@ -193,6 +54,7 @@ function normalizeProject(row: SupabaseProjectRow): ProjectWithCategory {
     ...row,
     category,
     gallery_images: Array.isArray(row.gallery_images) ? row.gallery_images : [],
+    media: localVideoMediaBySlug.get(row.slug),
     tech_stack: Array.isArray(row.tech_stack) ? row.tech_stack : [],
     technical_breakdown: normalizeTechnicalBreakdown(row.technical_breakdown),
   };
@@ -318,15 +180,19 @@ export function useProjects(options: UseProjectsOptions = {}): UseProjectsResult
         throw projectResponse.error;
       }
 
-      const nextCategories = categoryResponse.data ?? [];
-      const nextProjects = ((projectResponse.data ?? []) as SupabaseProjectRow[]).map(normalizeProject);
+      const nextCategories = (categoryResponse.data ?? []).sort((a, b) =>
+        Number(isVideoProject({ category: b, video_url: null })) - Number(isVideoProject({ category: a, video_url: null })),
+      );
+      const nextProjects = ((projectResponse.data ?? []) as SupabaseProjectRow[])
+        .map(normalizeProject)
+        .sort((a, b) => Number(isVideoProject(b)) - Number(isVideoProject(a)));
 
       if (!mountedRef.current) {
         return;
       }
 
-      setCategories(nextCategories.length > 0 ? nextCategories : fallbackCategories);
-      setAllProjects(nextProjects.length > 0 ? nextProjects : fallbackProjects);
+      setCategories(nextCategories);
+      setAllProjects(nextProjects);
     } catch (caughtError) {
       const nextError =
         caughtError instanceof Error

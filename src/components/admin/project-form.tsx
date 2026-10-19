@@ -6,6 +6,8 @@ import { DragEvent, useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
+import { getAdminErrorMessage } from "@/lib/admin-error";
+import { fallbackCategories } from "@/data/portfolio-projects";
 import type {
   Category,
   ProjectInsert,
@@ -15,7 +17,7 @@ import type {
 } from "@/types/database";
 
 const projectSchema = z.object({
-  category_id: z.string().trim(),
+  category_id: z.string().trim().min(1, "Select a category for this project."),
   display_order: z.coerce.number().int().min(0, "Display order must be 0 or greater."),
   featured_image_url: z.string().trim(),
   full_description: z.string().trim().min(20, "Write a fuller markdown case study."),
@@ -55,6 +57,16 @@ interface ProjectFormProps {
   onSaved?: () => Promise<void> | void;
   project?: ProjectWithCategory | null;
 }
+
+const MAX_UPLOAD_BYTES = 250 * 1024 * 1024;
+const ALLOWED_UPLOAD_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+  "video/mp4",
+  "video/webm",
+]);
 
 function slugify(value: string) {
   return value
@@ -222,6 +234,15 @@ export function ProjectForm({
       return [];
     }
 
+    const invalidFile = files.find(
+      (file) => !ALLOWED_UPLOAD_TYPES.has(file.type) || file.size > MAX_UPLOAD_BYTES,
+    );
+    if (invalidFile) {
+      throw new Error(
+        `${invalidFile.name} must be a JPEG, PNG, WebP, AVIF, MP4, or WebM file under 250 MB.`,
+      );
+    }
+
     const supabase = createClient();
     const {
       data: { user },
@@ -268,7 +289,7 @@ export function ProjectForm({
         setValue("featured_image_url", url, { shouldDirty: true, shouldValidate: true });
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Thumbnail upload failed.");
+      setMessage(getAdminErrorMessage(error, "Thumbnail upload failed."));
     } finally {
       setUploadingLabel("");
     }
@@ -285,7 +306,7 @@ export function ProjectForm({
         shouldValidate: true,
       });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Gallery upload failed.");
+      setMessage(getAdminErrorMessage(error, "Gallery upload failed."));
     } finally {
       setUploadingLabel("");
     }
@@ -301,7 +322,7 @@ export function ProjectForm({
         setValue("video_url", url, { shouldDirty: true, shouldValidate: true });
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Video upload failed.");
+      setMessage(getAdminErrorMessage(error, "Video upload failed."));
     } finally {
       setUploadingLabel("");
     }
@@ -356,7 +377,7 @@ export function ProjectForm({
       setMessage("Project saved.");
       await onSaved?.();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to save project.");
+      setMessage(getAdminErrorMessage(error, "Unable to save project."));
     } finally {
       setIsSaving(false);
     }
@@ -413,16 +434,28 @@ export function ProjectForm({
             Category
           </span>
           <select
+            aria-invalid={Boolean(errors.category_id)}
             className="h-11 border border-white/15 bg-black px-3 text-sm outline-none focus:border-[#ffd60a]"
             {...register("category_id")}
           >
-            <option value="">Unassigned</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
+            <option value="">Choose a category</option>
+            {categories.length > 0
+              ? categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))
+              : fallbackCategories.map((category) => (
+                  <option disabled key={category.slug} value={`unavailable:${category.slug}`}>
+                    {category.name} (CMS not connected)
+                  </option>
+                ))}
           </select>
+          {errors.category_id ? (
+            <span className="text-sm text-[#ffd60a]">{errors.category_id.message}</span>
+          ) : categories.length === 0 ? (
+            <span className="text-sm text-white/45">These site categories cannot be assigned until the Supabase CMS tables are initialized.</span>
+          ) : null}
         </label>
 
         <label className="grid gap-2">

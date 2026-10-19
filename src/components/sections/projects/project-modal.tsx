@@ -3,12 +3,13 @@
 /* eslint-disable @next/next/no-img-element */
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ExternalLink, Film, GitBranch, ImageIcon, X } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ProjectWithCategory } from "@/types/database";
+import { isVideoProject } from "@/lib/project-kind";
 
 interface ProjectModalProps {
   onOpenChange: (open: boolean) => void;
@@ -63,7 +64,7 @@ function MarkdownDescription({ content }: { content: string }) {
     }
 
     nodes.push(
-      <ul className="my-5 grid gap-2 border-l border-red-500/40 pl-5 text-sm leading-6 text-zinc-300" key={`ul-${nodes.length}`}>
+      <ul className="my-5 grid gap-2 border-l border-[#ffd60a]/40 pl-5 text-sm leading-6 text-zinc-300" key={`ul-${nodes.length}`}>
         {bulletBuffer.map((item) => (
           <li key={item}>{item}</li>
         ))}
@@ -126,9 +127,9 @@ function MarkdownDescription({ content }: { content: string }) {
 
 function MediaFallback({ title }: { title: string }) {
   return (
-    <div className="flex aspect-video items-center justify-center bg-[radial-gradient(circle_at_70%_35%,rgba(255,31,54,0.2),transparent_20rem),linear-gradient(135deg,#05070b,#111827_56%,#25070e)]">
+    <div className="flex aspect-video items-center justify-center bg-neutral-900">
       <div className="text-center">
-        <ImageIcon className="mx-auto size-12 text-red-300" />
+        <ImageIcon className="mx-auto size-12 text-[#ffd60a]" />
         <p className="mt-4 font-mono text-xs font-black uppercase text-zinc-300">
           {title}
         </p>
@@ -137,8 +138,30 @@ function MediaFallback({ title }: { title: string }) {
   );
 }
 
+function ProjectVideo({ src, poster, title }: { src: string; poster: string | null; title: string }) {
+  const video = useRef<HTMLVideoElement>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const element = video.current;
+    if (element) element.src = src;
+    const pauseWhenHidden = () => { if (document.hidden) element?.pause(); };
+    document.addEventListener("visibilitychange", pauseWhenHidden);
+    return () => {
+      document.removeEventListener("visibilitychange", pauseWhenHidden);
+      if (element) { element.pause(); element.removeAttribute("src"); element.load(); }
+    };
+  }, [src]);
+  return <>
+    <video ref={video} aria-label={`${title} video`} className="project-film" controls playsInline
+      preload="metadata" poster={poster ?? undefined} src={src} onError={() => setFailed(true)} />
+    {failed && <p role="alert" className="p-4 text-sm text-zinc-300">This video could not be loaded. <a className="text-[#ffd60a] underline" href={src} target="_blank" rel="noreferrer">Open the video directly</a>.</p>}
+  </>;
+}
+
 export function ProjectModal({ onOpenChange, open, project }: ProjectModalProps) {
+  const reducedMotion = useReducedMotion();
   const [activeIndex, setActiveIndex] = useState(0);
+  const opener = useRef<HTMLElement | null>(null);
   const media = useMemo(() => (project ? buildGallery(project) : []), [project]);
   const activeMedia = media[activeIndex];
   const breakdownEntries = Object.entries(project?.technical_breakdown ?? {});
@@ -146,6 +169,10 @@ export function ProjectModal({ onOpenChange, open, project }: ProjectModalProps)
   useEffect(() => {
     setActiveIndex(0);
   }, [project?.id]);
+
+  useEffect(() => {
+    if (open) opener.current = document.activeElement as HTMLElement;
+  }, [open]);
 
   return (
     <Dialog.Root onOpenChange={onOpenChange} open={open}>
@@ -155,33 +182,34 @@ export function ProjectModal({ onOpenChange, open, project }: ProjectModalProps)
             <Dialog.Overlay asChild forceMount>
               <motion.div
                 animate={{ opacity: 1 }}
-                className="fixed inset-0 z-50 bg-black/82 backdrop-blur-md"
+                className="fixed inset-0 z-50 bg-black/[0.82] backdrop-blur-md"
                 exit={{ opacity: 0 }}
-                initial={{ opacity: 0 }}
+                initial={reducedMotion ? false : { opacity: 0 }}
+                transition={{ duration: reducedMotion ? 0 : 0.2 }}
               />
             </Dialog.Overlay>
-            <Dialog.Content asChild forceMount>
+            <Dialog.Content asChild forceMount onCloseAutoFocus={event => { event.preventDefault(); opener.current?.focus({ preventScroll: true }); }}>
               <motion.div
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                className="fixed inset-2 z-50 overflow-hidden border border-white/14 bg-[#05070b] shadow-[0_40px_140px_rgba(0,0,0,0.68)] outline-none sm:inset-4"
-                exit={{ opacity: 0, scale: 0.98, y: 18 }}
-                initial={{ opacity: 0, scale: 0.98, y: 18 }}
-                transition={{ duration: 0.24, ease: "easeOut" }}
+                className="fixed inset-2 z-50 overflow-hidden border border-white/20 bg-[#080808] shadow-[0_40px_140px_rgba(0,0,0,0.68)] outline-none sm:inset-4"
+                exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98, y: 18 }}
+                initial={reducedMotion ? false : { opacity: 0, scale: 0.98, y: 18 }}
+                transition={{ duration: reducedMotion ? 0 : 0.24, ease: "easeOut" }}
               >
                 <div className="flex h-full flex-col">
                   <header className="flex shrink-0 items-start justify-between gap-4 border-b border-white/10 bg-black/58 p-4 backdrop-blur-md sm:p-6">
                     <div>
                       <div className="flex flex-wrap items-center gap-3">
-                        <span className="border border-red-500/45 bg-red-600/12 px-3 py-2 font-mono text-[0.64rem] font-black uppercase text-red-200">
+                        <span className="border border-[#ffd60a]/40 bg-[#ffd60a]/10 px-3 py-2 font-mono text-[0.64rem] font-black uppercase text-[#ffd60a]">
                           {project.category?.name ?? "Uncategorized"}
                         </span>
                         {project.is_featured ? (
                           <span className="border border-white/12 bg-white/[0.04] px-3 py-2 font-mono text-[0.64rem] font-black uppercase text-zinc-300">
-                            Featured Build
+                            {isVideoProject(project) ? "Featured Edit" : "Featured Build"}
                           </span>
                         ) : null}
                       </div>
-                      <Dialog.Title className="mt-4 max-w-4xl text-3xl font-black uppercase leading-none text-white sm:text-5xl">
+                      <Dialog.Title className="mt-4 max-w-4xl break-words text-2xl font-black uppercase leading-tight text-white sm:text-4xl">
                         {project.title}
                       </Dialog.Title>
                     </div>
@@ -190,34 +218,26 @@ export function ProjectModal({ onOpenChange, open, project }: ProjectModalProps)
                       {project.live_demo_url ? (
                         <Button
                           asChild
-                          className="hidden h-11 rounded-none border-red-500 bg-red-600 font-black uppercase text-white hover:bg-red-500 sm:inline-flex"
+                          className="hidden h-11 rounded-none border-[#ffd60a] bg-[#ffd60a] font-black uppercase text-black hover:bg-yellow-400 sm:inline-flex"
                         >
                           <a href={project.live_demo_url} rel="noreferrer" target="_blank">
-                            Live Demo
+                            {isVideoProject(project) ? "Watch video" : "Live Demo"}
                             <ExternalLink />
                           </a>
                         </Button>
                       ) : null}
-                      <Dialog.Close className="flex size-11 items-center justify-center border border-white/12 bg-black/45 text-white transition-colors hover:border-red-500/70 hover:bg-red-600/16">
+                      <Dialog.Close className="flex size-11 items-center justify-center border border-white/20 bg-black text-white transition-colors hover:border-[#ffd60a] hover:text-[#ffd60a]">
                         <X className="size-5" />
                         <span className="sr-only">Close project modal</span>
                       </Dialog.Close>
                     </div>
                   </header>
 
-                  <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1.12fr)_minmax(24rem,0.88fr)]">
+                  <div data-lenis-prevent className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1.12fr)_minmax(24rem,0.88fr)]">
                     <div className="border-b border-white/10 p-4 lg:border-b-0 lg:border-r lg:p-6">
                       <div className="overflow-hidden border border-white/12 bg-black">
                         {activeMedia?.type === "video" ? (
-                          <video
-                            autoPlay
-                            className="aspect-video h-full w-full object-cover"
-                            controls
-                            loop
-                            muted
-                            playsInline
-                            src={activeMedia.src}
-                          />
+                          <ProjectVideo key={activeMedia.src} src={activeMedia.src} poster={project.featured_image_url} title={project.title} />
                         ) : activeMedia?.type === "image" ? (
                           <img
                             alt={activeMedia.label}
@@ -239,15 +259,15 @@ export function ProjectModal({ onOpenChange, open, project }: ProjectModalProps)
                                 className={cn(
                                   "relative aspect-video overflow-hidden border bg-black transition-colors",
                                   isActive
-                                    ? "border-red-500/80"
-                                    : "border-white/12 hover:border-red-500/50",
+                                    ? "border-[#ffd60a]"
+                                    : "border-white/20 hover:border-[#ffd60a]/50",
                                 )}
                                 key={`${item.type}-${item.src}`}
                                 onClick={() => setActiveIndex(index)}
                                 type="button"
                               >
                                 {item.type === "video" ? (
-                                  <div className="flex h-full items-center justify-center bg-red-600/12 text-red-200">
+                                  <div className="flex h-full items-center justify-center bg-[#ffd60a]/10 text-[#ffd60a]">
                                     <Film className="size-5" />
                                   </div>
                                 ) : (
@@ -285,8 +305,8 @@ export function ProjectModal({ onOpenChange, open, project }: ProjectModalProps)
 
                       {breakdownEntries.length > 0 ? (
                         <div className="mt-8">
-                          <h3 className="font-mono text-xs font-black uppercase text-red-300">
-                            Technical Breakdown
+                          <h3 className="font-mono text-xs font-black uppercase text-[#ffd60a]">
+                            {isVideoProject(project) ? "Creative breakdown" : "Technical breakdown"}
                           </h3>
                           <div className="mt-4 grid gap-2">
                             {breakdownEntries.map(([label, value]) => (
@@ -310,10 +330,10 @@ export function ProjectModal({ onOpenChange, open, project }: ProjectModalProps)
                         {project.live_demo_url ? (
                           <Button
                             asChild
-                            className="h-11 rounded-none border-red-500 bg-red-600 font-black uppercase text-white hover:bg-red-500"
+                            className="h-11 rounded-none border-[#ffd60a] bg-[#ffd60a] font-black uppercase text-black hover:bg-yellow-400"
                           >
                             <a href={project.live_demo_url} rel="noreferrer" target="_blank">
-                              Live Demo
+                              {isVideoProject(project) ? "Watch video" : "Live Demo"}
                               <ExternalLink />
                             </a>
                           </Button>
@@ -321,7 +341,7 @@ export function ProjectModal({ onOpenChange, open, project }: ProjectModalProps)
                         {project.github_url ? (
                           <Button
                             asChild
-                            className="h-11 rounded-none border-white/12 bg-black/35 font-black uppercase text-white hover:border-red-500/70 hover:bg-red-600/12"
+                            className="h-11 rounded-none border-white/20 bg-black font-black uppercase text-white hover:border-[#ffd60a] hover:bg-[#ffd60a]/10"
                             variant="outline"
                           >
                             <a href={project.github_url} rel="noreferrer" target="_blank">

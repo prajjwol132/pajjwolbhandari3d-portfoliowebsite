@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
+import { isPortfolioAdmin } from "@/lib/admin-access";
+import { getAdminErrorMessage } from "@/lib/admin-error";
 import { createClient } from "@/lib/supabase/server";
+import { mergePageMedia } from "@/data/page-media";
 import type { Category, Profile, Project, ProjectWithCategory } from "@/types/database";
 
 export const dynamic = "force-dynamic";
@@ -86,10 +89,14 @@ export default async function AdminDashboardPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/admin/login");
+    redirect("/admin/login?error=auth");
   }
 
-  const [categoryResponse, projectResponse, profileResponse] = await Promise.all([
+  if (!isPortfolioAdmin(user)) {
+    redirect("/admin/login?error=forbidden");
+  }
+
+  const [categoryResponse, projectResponse, profileResponse, pageMediaResponse] = await Promise.all([
     supabase
       .from("categories")
       .select("id,name,slug,description,display_order,created_at,updated_at")
@@ -135,6 +142,10 @@ export default async function AdminDashboardPage() {
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("page_media")
+      .select("key,label,image_url,alt_text,display_order,created_at,updated_at")
+      .order("display_order", { ascending: true }),
   ]);
 
   const categories = categoryResponse.error ? [] : categoryResponse.data ?? [];
@@ -142,11 +153,18 @@ export default async function AdminDashboardPage() {
     ? []
     : ((projectResponse.data ?? []) as SupabaseProjectRow[]).map(normalizeProject);
   const profile = profileResponse.error ? null : normalizeProfile(profileResponse.data);
+  const pageMedia = mergePageMedia(pageMediaResponse.error ? null : pageMediaResponse.data);
 
   return (
     <AdminDashboard
       initialCategories={categories}
+      initialError={
+        categoryResponse.error || projectResponse.error || profileResponse.error || pageMediaResponse.error
+          ? getAdminErrorMessage(categoryResponse.error ?? projectResponse.error ?? profileResponse.error ?? pageMediaResponse.error, "Unable to load CMS records.")
+          : ""
+      }
       initialProfile={profile}
+      initialPageMedia={pageMedia}
       initialProjects={projects}
       userEmail={user.email}
     />

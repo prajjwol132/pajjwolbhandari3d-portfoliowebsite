@@ -1,0 +1,17 @@
+{
+  "tool": "rife-ncnn-vulkan",
+  "release": "20221029",
+  "model": "rife-v4.6",
+  "execution": "local Vulkan GPU, build-time only",
+  "source": "Same selected source strips as v1/v2; no new character design",
+  "output": "public/media/character/frames-v3",
+  "width": 480,
+  "height": 720,
+  "gaze_grid": [65, 65],
+  "gaze_frames": 4225,
+  "gaze_intermediate_frames_per_source_interval": 31,
+  "turn_frames": 768,
+  "turn_intermediate_frames_per_source_interval": 63,
+  "floor_contact": "Unchanged local silhouette-tip contact and ambient shadows baked behind each whole-character frame",
+  "limitations": "Denser temporal sampling improves motion granularity, not geometric accuracy. Occluded chair legs, shoes and limbs may still soften or distort."
+}

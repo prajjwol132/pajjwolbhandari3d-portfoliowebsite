@@ -1,0 +1,14 @@
+{
+  "tool": "rife-ncnn-vulkan",
+  "release": "20221029",
+  "model": "rife-v4.6",
+  "execution": "local NVIDIA Vulkan GPU, build-time only",
+  "download": "https://github.com/nihui/rife-ncnn-vulkan/releases/download/20221029/rife-ncnn-vulkan-20221029-windows.zip",
+  "archive_sha256": "d8e4d772d26cd8006ef0ad0bc82eb191b53c68677d1ae2f42506d74cbbbea606",
+  "width": 480,
+  "height": 720,
+  "gaze_frames": 153,
+  "turn_frames": 144,
+  "turn_duration_seconds": 6,
+  "limitations": "Generated keyframes and interpolated in-betweens approximate 3D appearance. Some occluded chair legs, shoes and limbs soften or distort during turns. No rigged geometry or independently animated eye bones."
+}

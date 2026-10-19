@@ -51,6 +51,12 @@ create table if not exists public.projects (
   updated_at timestamptz not null default now()
 );
 
+insert into public.categories (name, slug, description, display_order)
+values
+  ('Video Editing', 'video-projects', 'Editing, motion graphics, and social-first storytelling.', 1),
+  ('Web Apps', 'web-apps', 'React projects built alongside my IT studies.', 2)
+on conflict (slug) do nothing;
+
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql

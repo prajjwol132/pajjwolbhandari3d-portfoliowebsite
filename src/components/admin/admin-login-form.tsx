@@ -1,20 +1,20 @@
 "use client";
 
 import { Lock, LogIn, Mail } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 interface AdminLoginFormProps {
+  hasAccessError?: boolean;
   hasConfigError?: boolean;
   nextPath?: string;
 }
 
 export function AdminLoginForm({
+  hasAccessError = false,
   hasConfigError = false,
   nextPath = "/admin/dashboard",
 }: AdminLoginFormProps) {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -33,11 +33,12 @@ export function AdminLoginForm({
       });
 
       if (error) {
-        throw error;
+        throw new Error("Unable to sign in. Check your credentials and try again.");
       }
 
-      router.replace(nextPath.startsWith("/admin") ? nextPath : "/admin/dashboard");
-      router.refresh();
+      window.location.assign(
+        nextPath.startsWith("/admin") ? nextPath : "/admin/dashboard",
+      );
     } catch (error) {
       const message =
         error instanceof Error
@@ -111,8 +112,14 @@ export function AdminLoginForm({
         </p>
       ) : null}
 
+      {hasAccessError && !errorMessage ? (
+        <p role="alert" className="mt-4 border border-[#ffd60a]/40 bg-[#ffd60a]/10 p-3 text-sm font-semibold text-[#ffd60a]">
+          This account does not have administrator access.
+        </p>
+      ) : null}
+
       {errorMessage ? (
-        <p className="mt-4 border border-[#ffd60a]/40 bg-[#ffd60a]/10 p-3 text-sm font-semibold text-[#ffd60a]">
+        <p role="alert" className="mt-4 border border-[#ffd60a]/40 bg-[#ffd60a]/10 p-3 text-sm font-semibold text-[#ffd60a]">
           {errorMessage}
         </p>
       ) : null}

@@ -52,6 +52,17 @@ export interface Category {
   updated_at: string;
 }
 
+export interface PageMedia {
+  [key: string]: unknown;
+  key: string;
+  label: string;
+  image_url: string;
+  alt_text: string;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Project {
   [key: string]: unknown;
   id: string;
@@ -76,6 +87,13 @@ export interface Project {
 
 export type ProjectWithCategory = Project & {
   category: Category | null;
+  // Delivery metadata for imported local media, separate from the database row.
+  media?: {
+    preview_url: string;
+    width: number;
+    height: number;
+    duration: number;
+  };
 };
 
 export type ProfileInsert = Omit<Profile, "created_at" | "updated_at"> &
@@ -87,6 +105,11 @@ export type CategoryInsert = Omit<Category, "id" | "created_at" | "updated_at"> 
   Partial<Pick<Category, "id" | "created_at" | "updated_at">>;
 
 export type CategoryUpdate = Partial<CategoryInsert>;
+
+export type PageMediaInsert = Omit<PageMedia, "created_at" | "updated_at"> &
+  Partial<Pick<PageMedia, "created_at" | "updated_at">>;
+
+export type PageMediaUpdate = Partial<PageMediaInsert>;
 
 export type ProjectInsert = Omit<Project, "id" | "created_at" | "updated_at"> &
   Partial<Pick<Project, "id" | "created_at" | "updated_at">>;
@@ -110,6 +133,12 @@ export interface Database {
         Row: Category;
         Insert: CategoryInsert;
         Update: CategoryUpdate;
+        Relationships: [];
+      };
+      page_media: {
+        Row: PageMedia;
+        Insert: PageMediaInsert;
+        Update: PageMediaUpdate;
         Relationships: [];
       };
       project_categories: {

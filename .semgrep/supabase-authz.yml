@@ -1,0 +1,23 @@
+rules:
+  - id: supabase-authenticated-write-without-admin-check
+    languages:
+      - generic
+    severity: ERROR
+    message: >-
+      Authenticated users can write this table without an administrator claim.
+      Gate every CMS write policy on a server-managed app_metadata role or an
+      equivalent database-side administrator check.
+    metadata:
+      cwe: "CWE-862: Missing Authorization"
+      category: security
+      technology:
+        - supabase
+        - postgresql
+    paths:
+      include:
+        - supabase/migrations/*.sql
+      # The initial migration remains immutable; migration 0002 replaces its policies.
+      exclude:
+        - supabase/migrations/0001_portfolio_cms.sql
+    pattern-regex: >-
+      (?is)create\s+policy[\s\S]{0,500}?for\s+(?:all|insert|update|delete)[\s\S]{0,200}?to\s+authenticated[\s\S]{0,200}?(?:using|with\s+check)\s*\(\s*true\s*\)

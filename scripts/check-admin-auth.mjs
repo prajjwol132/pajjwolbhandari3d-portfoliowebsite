@@ -46,7 +46,13 @@ const { data, error } = await supabase.auth.signInWithPassword({
 });
 
 if (error) {
-  console.log(JSON.stringify({ error: error.message, ok: false }, null, 2));
+  console.log(JSON.stringify({ error: "Invalid email or password.", ok: false }, null, 2));
+  process.exit(1);
+}
+
+if (data.user.app_metadata?.role !== "admin") {
+  await supabase.auth.signOut();
+  console.log(JSON.stringify({ error: "Authenticated account is not an administrator.", ok: false }, null, 2));
   process.exit(1);
 }
 

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isPortfolioAdmin } from "@/lib/admin-access";
 import type { Database } from "@/types/database";
 
 function getSupabaseMiddlewareEnv() {
@@ -66,14 +67,17 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user && !isLoginRoute) {
+  if ((!user || !isPortfolioAdmin(user)) && !isLoginRoute) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/admin/login";
+    if (user) {
+      redirectUrl.searchParams.set("error", "forbidden");
+    }
     redirectUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (user && isLoginRoute) {
+  if (user && isPortfolioAdmin(user) && isLoginRoute) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/admin/dashboard";
     redirectUrl.search = "";

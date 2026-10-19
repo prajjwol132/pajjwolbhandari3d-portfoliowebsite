@@ -1,11 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { createClient } from "@/lib/supabase/client";
+import { defaultProfile } from "@/data/portfolio-profile";
 import type { Profile, ProfileInsert, SocialLink, TelemetryMetric } from "@/types/database";
 
 const profileSchema = z.object({
@@ -28,22 +30,12 @@ const profileSchema = z.object({
 type ProfileSettingsValues = z.infer<typeof profileSchema>;
 
 interface ProfileSettingsFormProps {
+  isDeleting?: boolean;
+  onDelete?: () => Promise<void> | void;
   onSaved?: () => Promise<void> | void;
   profile?: Profile | null;
 }
 
-const defaultMetrics: TelemetryMetric[] = [
-  { detail: "Production-focused development", label: "Years Exp", value: "3+" },
-  { detail: "Full-stack, CMS, 3D, and media builds", label: "Projects", value: "15+" },
-  { detail: "Built around reliable delivery", label: "Client Satisfaction", value: "100%" },
-  { detail: "Next.js, Supabase, GSAP, R3F", label: "Core Spec", value: "Next / Three" },
-];
-
-const defaultSocialLinks: SocialLink[] = [
-  { icon: "github", label: "GitHub", url: "https://github.com/" },
-  { icon: "linkedin", label: "LinkedIn", url: "https://www.linkedin.com/" },
-  { icon: "mail", label: "Email", url: "mailto:hello@prajjwol-bhandari.dev" },
-];
 
 function formatJson(value: unknown) {
   return JSON.stringify(value, null, 2);
@@ -78,27 +70,22 @@ function isSocialLink(entry: unknown): entry is SocialLink {
 }
 
 function defaultValues(profile?: Profile | null): ProfileSettingsValues {
+  const value = { ...defaultProfile, ...profile };
   return {
-    avatar_url: profile?.avatar_url ?? "",
-    bio:
-      profile?.bio ??
-      "Prajjwol Bhandari builds fast, cinematic web interfaces with Next.js, TypeScript, Supabase, React Three Fiber, and GSAP.",
-    email: profile?.email ?? "hello@prajjwol-bhandari.dev",
-    full_name: profile?.full_name ?? "Prajjwol Bhandari",
-    github_url: profile?.github_url ?? "https://github.com/",
-    headline: profile?.headline ?? "Full-Stack & 3D Developer",
-    linkedin_url: profile?.linkedin_url ?? "https://www.linkedin.com/",
-    location: profile?.location ?? "Kathmandu, Nepal",
-    metrics_json: formatJson(profile?.metrics?.length ? profile.metrics : defaultMetrics),
-    resume_url: profile?.resume_url ?? "/resume",
-    social_links_json: formatJson(
-      profile?.social_links?.length ? profile.social_links : defaultSocialLinks,
-    ),
-    tagline:
-      profile?.tagline ??
-      "I build polished web systems where backend structure, motion, and visual depth work as one product.",
-    title: profile?.title ?? "Full-Stack Software Engineer / 3D Creative Developer",
-    website_url: profile?.website_url ?? "https://prajjwol-bhandari.dev",
+    avatar_url: value.avatar_url ?? "",
+    bio: value.bio,
+    email: value.email ?? "",
+    full_name: value.full_name,
+    github_url: value.github_url ?? "",
+    headline: value.headline,
+    linkedin_url: value.linkedin_url ?? "",
+    location: value.location ?? "",
+    metrics_json: formatJson(value.metrics),
+    resume_url: value.resume_url ?? "",
+    social_links_json: formatJson(value.social_links),
+    tagline: value.tagline ?? "",
+    title: value.title ?? "",
+    website_url: value.website_url ?? "",
   };
 }
 
@@ -107,17 +94,25 @@ function nullable(value: string) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-export function ProfileSettingsForm({ onSaved, profile }: ProfileSettingsFormProps) {
+export function ProfileSettingsForm({
+  isDeleting = false,
+  onDelete,
+  onSaved,
+  profile,
+}: ProfileSettingsFormProps) {
   const {
     formState: { errors },
     handleSubmit,
     register,
+    setValue,
+    watch,
   } = useForm<ProfileSettingsValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: defaultValues(profile),
   });
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const avatarUrl = watch("avatar_url");
 
   const onSubmit = async (values: ProfileSettingsValues) => {
     setIsSaving(true);
@@ -167,10 +162,11 @@ export function ProfileSettingsForm({ onSaved, profile }: ProfileSettingsFormPro
         <p className="font-mono text-[0.66rem] font-black uppercase text-[#ffd60a]">
           Profile & Telemetry
         </p>
-        <h2 className="mt-2 text-3xl font-black uppercase leading-none">Driver Card CMS</h2>
+        <h2 className="mt-2 text-3xl font-black uppercase leading-none">Profile CMS</h2>
       </div>
 
       <div className="grid gap-5 md:grid-cols-2">
+        <input type="hidden" {...register("avatar_url")} />
         <label className="grid gap-2">
           <span className="font-mono text-[0.66rem] font-black uppercase text-white/55">Full Name</span>
           <input className="h-11 border border-white/15 bg-white/[0.04] px-3 text-sm outline-none focus:border-[#ffd60a]" {...register("full_name")} />
@@ -223,10 +219,14 @@ export function ProfileSettingsForm({ onSaved, profile }: ProfileSettingsFormPro
           <span className="font-mono text-[0.66rem] font-black uppercase text-white/55">Website URL</span>
           <input className="h-11 border border-white/15 bg-white/[0.04] px-3 text-sm outline-none focus:border-[#ffd60a]" {...register("website_url")} />
         </label>
-        <label className="grid gap-2">
-          <span className="font-mono text-[0.66rem] font-black uppercase text-white/55">Avatar URL</span>
-          <input className="h-11 border border-white/15 bg-white/[0.04] px-3 text-sm outline-none focus:border-[#ffd60a]" {...register("avatar_url")} />
-        </label>
+        <div className="md:col-span-2">
+          <ImageUploadField
+            label="Profile image"
+            onChange={(value) => setValue("avatar_url", value, { shouldDirty: true, shouldValidate: true })}
+            storagePath="profile"
+            value={avatarUrl ?? ""}
+          />
+        </div>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
@@ -243,19 +243,32 @@ export function ProfileSettingsForm({ onSaved, profile }: ProfileSettingsFormPro
       </div>
 
       {message ? (
-        <p className="border border-[#ffd60a]/40 bg-[#ffd60a]/10 p-3 text-sm font-semibold text-[#ffd60a]">
+        <p role="status" aria-live="polite" className="border border-[#ffd60a]/40 bg-[#ffd60a]/10 p-3 text-sm font-semibold text-[#ffd60a]">
           {message}
         </p>
       ) : null}
 
-      <button
-        className="inline-flex h-12 w-fit items-center justify-center gap-2 bg-[#ffd60a] px-5 font-mono text-xs font-black uppercase text-black transition hover:bg-white disabled:opacity-55"
-        disabled={isSaving}
-        type="submit"
-      >
-        {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-        {isSaving ? "Saving Profile" : "Save Profile Settings"}
-      </button>
+      <div className="flex flex-wrap gap-3">
+        <button
+          className="inline-flex h-12 w-fit items-center justify-center gap-2 bg-[#ffd60a] px-5 font-mono text-xs font-black uppercase text-black transition hover:bg-white disabled:opacity-55"
+          disabled={isSaving || isDeleting}
+          type="submit"
+        >
+          {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+          {isSaving ? "Saving Profile" : "Save Profile Settings"}
+        </button>
+        {profile && onDelete ? (
+          <button
+            className="inline-flex h-12 items-center justify-center gap-2 border border-white/20 px-5 font-mono text-xs font-black uppercase text-white transition hover:border-red-400 hover:text-red-300 disabled:opacity-55"
+            disabled={isSaving || isDeleting}
+            onClick={onDelete}
+            type="button"
+          >
+            {isDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+            {isDeleting ? "Deleting Profile" : "Delete Profile"}
+          </button>
+        ) : null}
+      </div>
     </form>
   );
 }

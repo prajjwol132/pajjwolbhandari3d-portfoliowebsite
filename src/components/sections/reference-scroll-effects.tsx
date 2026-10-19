@@ -11,11 +11,12 @@ export function ReferenceScrollEffects() {
       return;
     }
 
-    const context = gsap.context(() => {
-      gsap.utils.toArray<HTMLElement>("[data-reference-reveal]").forEach((element) => {
-        gsap.from(
-          element,
-          {
+    const media = gsap.matchMedia();
+    media.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.utils
+        .toArray<HTMLElement>("[data-reference-reveal]")
+        .forEach((element) => {
+          gsap.from(element, {
             autoAlpha: 0,
             duration: 0.85,
             ease: "power3.out",
@@ -27,55 +28,38 @@ export function ReferenceScrollEffects() {
               end: "bottom 20%",
               toggleActions: "play none none reverse",
             },
-          },
-        );
-      });
+          });
+        });
 
-      gsap.utils.toArray<HTMLElement>("[data-reference-parallax]").forEach((element) => {
-        const distance = Number(element.dataset.referenceParallax || "80");
+      gsap.utils
+        .toArray<HTMLElement>("[data-reference-parallax]")
+        .forEach((element) => {
+          const distance = Number(element.dataset.referenceParallax || "80");
 
-        gsap.fromTo(
-          element,
-          { y: -distance * 0.35 },
-          {
-            ease: "none",
-            y: distance,
-            scrollTrigger: {
-              trigger: element,
-              start: "top bottom",
-              end: "bottom top",
-              scrub: true,
+          gsap.fromTo(
+            element,
+            { y: -distance * 0.35 },
+            {
+              ease: "none",
+              y: distance,
+              scrollTrigger: {
+                trigger: element,
+                start: "top bottom",
+                end: "bottom top",
+                scrub: true,
+              },
             },
-          },
-        );
-      });
-
-      gsap.utils.toArray<HTMLElement>("[data-history-card]").forEach((element, index) => {
-        gsap.from(
-          element,
-          {
-            autoAlpha: 0.28,
-            duration: 0.7,
-            ease: "power2.out",
-            immediateRender: false,
-            rotate: index % 2 === 0 ? -2 : 2,
-            scale: 0.92,
-            y: 42,
-            scrollTrigger: {
-              trigger: element,
-              start: "top 74%",
-              end: "bottom 38%",
-              scrub: 0.8,
-            },
-          },
-        );
-      });
+          );
+        });
     });
 
-    window.requestAnimationFrame(() => ScrollTriggerPlugin.refresh());
+    const frame = window.requestAnimationFrame(() =>
+      ScrollTriggerPlugin.refresh(),
+    );
 
     return () => {
-      context.revert();
+      window.cancelAnimationFrame(frame);
+      media.revert();
     };
   }, []);
 

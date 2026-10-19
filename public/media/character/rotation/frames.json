@@ -1,0 +1,82 @@
+{
+  "frame": {
+    "width": 560,
+    "height": 840,
+    "baseline": 820,
+    "bodyHeight": 780
+  },
+  "views": [
+    {
+      "name": "front",
+      "left": 0,
+      "right": 525,
+      "axis": 263,
+      "crop": {
+        "left": 74,
+        "top": 24,
+        "width": 410,
+        "height": 774
+      },
+      "placement": {
+        "x": 90,
+        "y": 40,
+        "width": 413,
+        "height": 780
+      }
+    },
+    {
+      "name": "three-quarter",
+      "left": 525,
+      "right": 960,
+      "axis": 725,
+      "crop": {
+        "left": 562,
+        "top": 24,
+        "width": 390,
+        "height": 774
+      },
+      "placement": {
+        "x": 116,
+        "y": 40,
+        "width": 393,
+        "height": 780
+      }
+    },
+    {
+      "name": "profile",
+      "left": 960,
+      "right": 1448,
+      "axis": 1240,
+      "crop": {
+        "left": 972,
+        "top": 24,
+        "width": 408,
+        "height": 767
+      },
+      "placement": {
+        "x": 7,
+        "y": 40,
+        "width": 415,
+        "height": 780
+      }
+    },
+    {
+      "name": "back",
+      "left": 1448,
+      "right": 1942,
+      "axis": 1682,
+      "crop": {
+        "left": 1467,
+        "top": 23,
+        "width": 418,
+        "height": 763
+      },
+      "placement": {
+        "x": 60,
+        "y": 40,
+        "width": 427,
+        "height": 780
+      }
+    }
+  ]
+}

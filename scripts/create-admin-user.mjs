@@ -1,4 +1,3 @@
-import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
@@ -31,6 +30,11 @@ const env = {
   ...process.env,
 };
 
+const email = (env.SUPABASE_ADMIN_EMAIL || env.ADMIN_EMAIL)?.trim().toLowerCase();
+if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY || !email) {
+  throw new Error("NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and SUPABASE_ADMIN_EMAIL (or ADMIN_EMAIL) are required.");
+}
+
 const supabase = createClient(
   env.NEXT_PUBLIC_SUPABASE_URL,
   env.SUPABASE_SERVICE_ROLE_KEY,
@@ -42,30 +46,34 @@ const supabase = createClient(
   },
 );
 
-const users = await supabase.auth.admin.listUsers({ page: 1, perPage: 1 });
-
-if (users.error) {
-  throw users.error;
+let page = 1;
+let account = null;
+while (!account) {
+  const result = await supabase.auth.admin.listUsers({ page, perPage: 100 });
+  if (result.error) throw result.error;
+  account = result.data.users.find((user) => user.email?.toLowerCase() === email) ?? null;
+  if (result.data.users.length < 100) break;
+  page += 1;
 }
 
-if (users.data.users.length > 0) {
-  console.log(JSON.stringify({ created: false, reason: "auth-user-already-exists" }, null, 2));
-  process.exit(0);
+if (!account) {
+  const password = env.SUPABASE_ADMIN_PASSWORD || env.ADMIN_PASSWORD;
+  if (!password || password.length < 12) {
+    throw new Error("No matching account found. Create it in Supabase Auth or set SUPABASE_ADMIN_PASSWORD (12+ characters).");
+  }
+
+  const created = await supabase.auth.admin.createUser({
+    email,
+    email_confirm: true,
+    password,
+    app_metadata: { role: "admin" },
+  });
+  if (created.error) throw created.error;
+  console.log(JSON.stringify({ action: "created", email, role: "admin" }, null, 2));
+} else {
+  const promoted = await supabase.auth.admin.updateUserById(account.id, {
+    app_metadata: { ...account.app_metadata, role: "admin" },
+  });
+  if (promoted.error) throw promoted.error;
+  console.log(JSON.stringify({ action: "admin-claim-set", email, role: "admin" }, null, 2));
 }
-
-const email = "admin@prajjwol-bhandari.dev";
-const password = randomBytes(18).toString("base64url");
-const created = await supabase.auth.admin.createUser({
-  email,
-  email_confirm: true,
-  password,
-  user_metadata: {
-    role: "admin",
-  },
-});
-
-if (created.error) {
-  throw created.error;
-}
-
-console.log(JSON.stringify({ created: true, email, password }, null, 2));

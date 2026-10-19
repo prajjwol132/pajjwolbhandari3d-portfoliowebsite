@@ -34,3 +34,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Local preview and browser verification artifacts
+.next-preview/
+.next-dev/
+artifacts/
+test-results/
+playwright-report/
+.venv-character/
+__pycache__/

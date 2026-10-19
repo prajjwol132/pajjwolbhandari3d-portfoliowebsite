@@ -23,7 +23,9 @@ interface SmoothScrollContextValue {
   stop: () => void;
 }
 
-const SmoothScrollContext = createContext<SmoothScrollContextValue | null>(null);
+const SmoothScrollContext = createContext<SmoothScrollContextValue | null>(
+  null,
+);
 
 interface SmoothScrollProviderProps {
   children: ReactNode;
@@ -35,58 +37,128 @@ export function SmoothScrollProvider({ children }: SmoothScrollProviderProps) {
   const [lenis, setLenis] = useState<Lenis | null>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return undefined;
-    }
+    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let instance: Lenis | null = null;
+    let destroyScrollTriggerBridge: (() => void) | null = null;
 
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-
-    if (prefersReducedMotion) {
-      return undefined;
-    }
-
-    const instance = new Lenis({
-      duration: 1.14,
-      easing: (time: number) => Math.min(1, 1.001 - 2 ** (-10 * time)),
-      gestureOrientation: "vertical",
-      smoothWheel: true,
-      syncTouch: false,
-      touchMultiplier: 1.15,
-      wheelMultiplier: 0.82,
-    });
-
-    lenisRef.current = instance;
-    setLenis(instance);
-
-    const destroyScrollTriggerBridge = syncLenisWithScrollTrigger(instance);
-
-    const raf = (time: number) => {
-      instance.raf(time);
-      frameRef.current = window.requestAnimationFrame(raf);
-    };
-
-    frameRef.current = window.requestAnimationFrame(raf);
-
-    return () => {
+    const stopFrameLoop = () => {
       if (frameRef.current !== null) {
         window.cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
       }
+    };
 
-      destroyScrollTriggerBridge();
-      instance.destroy();
+    const tick = (time: number) => {
+      if (!instance || document.visibilityState !== "visible") {
+        frameRef.current = null;
+        return;
+      }
+      instance.raf(time);
+      frameRef.current = window.requestAnimationFrame(tick);
+    };
+
+    const startFrameLoop = () => {
+      if (instance && frameRef.current === null && document.visibilityState === "visible") {
+        frameRef.current = window.requestAnimationFrame(tick);
+      }
+    };
+
+    const destroy = () => {
+      stopFrameLoop();
+      destroyScrollTriggerBridge?.();
+      destroyScrollTriggerBridge = null;
+      instance?.destroy();
+      instance = null;
       lenisRef.current = null;
       setLenis(null);
+    };
+
+    const initialize = () => {
+      if (instance || motionPreference.matches) return;
+      instance = new Lenis({
+        duration: 1.14,
+        easing: (time: number) => Math.min(1, 1.001 - 2 ** (-10 * time)),
+        gestureOrientation: "vertical",
+        smoothWheel: true,
+        syncTouch: false,
+        touchMultiplier: 1.15,
+        wheelMultiplier: 0.82,
+      });
+      lenisRef.current = instance;
+      setLenis(instance);
+      destroyScrollTriggerBridge = syncLenisWithScrollTrigger(instance);
+      startFrameLoop();
+    };
+
+    const handleMotionPreference = () => {
+      if (motionPreference.matches) destroy();
+      else initialize();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") startFrameLoop();
+      else stopFrameLoop();
+    };
+
+    motionPreference.addEventListener("change", handleMotionPreference);
+    document.addEventListener("visibilitychange", handleVisibility);
+    initialize();
+
+    return () => {
+      motionPreference.removeEventListener("change", handleMotionPreference);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      destroy();
     };
   }, []);
 
   const scrollTo = useCallback(
     (target: LenisScrollTarget, options?: LenisScrollOptions) => {
-      lenisRef.current?.scrollTo(target, options);
+      if (lenisRef.current) {
+        lenisRef.current.scrollTo(target, options);
+      } else if (typeof target === "number") {
+        window.scrollTo({ top: target, behavior: "instant" });
+      } else {
+        const element =
+          typeof target === "string" ? document.querySelector(target) : target;
+        element?.scrollIntoView({ behavior: "instant" });
+      }
     },
     [],
   );
+
+  useEffect(() => {
+    let anchorFrame = 0;
+    const onAnchorClick = (event: MouseEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      )
+        return;
+      const anchor =
+        event.target instanceof Element
+          ? event.target.closest<HTMLAnchorElement>('a[href^="#"]')
+          : null;
+      const hash = anchor?.getAttribute("href");
+      if (!hash || hash === "#" || anchor?.target === "_blank") return;
+      const target = document.getElementById(decodeURIComponent(hash.slice(1)));
+      if (!target) return;
+      event.preventDefault();
+      window.history.pushState(null, "", hash);
+      cancelAnimationFrame(anchorFrame);
+      anchorFrame = requestAnimationFrame(() => {
+        lenisRef.current?.start();
+        scrollTo(target, { offset: 0, duration: 1.1 });
+      });
+    };
+    document.addEventListener("click", onAnchorClick);
+    return () => {
+      document.removeEventListener("click", onAnchorClick);
+      cancelAnimationFrame(anchorFrame);
+    };
+  }, [scrollTo]);
 
   const start = useCallback(() => {
     lenisRef.current?.start();
@@ -117,7 +189,9 @@ export function useSmoothScroll() {
   const context = useContext(SmoothScrollContext);
 
   if (!context) {
-    throw new Error("useSmoothScroll must be used inside SmoothScrollProvider.");
+    throw new Error(
+      "useSmoothScroll must be used inside SmoothScrollProvider.",
+    );
   }
 
   return context;

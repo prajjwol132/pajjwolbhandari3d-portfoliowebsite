@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AdminLoginForm } from "@/components/admin/admin-login-form";
+import { safeAdminPath } from "@/lib/admin-access";
 
 export const metadata: Metadata = {
   title: "Admin Login",
@@ -14,10 +15,9 @@ interface AdminLoginPageProps {
 }
 
 export default function AdminLoginPage({ searchParams }: AdminLoginPageProps) {
-  const nextPath = searchParams?.next?.startsWith("/admin")
-    ? searchParams.next
-    : "/admin/dashboard";
+  const nextPath = safeAdminPath(searchParams?.next);
   const hasConfigError = searchParams?.error === "supabase-config";
+  const hasAccessError = searchParams?.error === "forbidden";
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-black px-5 py-16 text-white">
@@ -29,7 +29,11 @@ export default function AdminLoginPage({ searchParams }: AdminLoginPageProps) {
       <div className="pointer-events-none absolute bottom-0 left-0 h-24 w-full opacity-35 [background-image:linear-gradient(45deg,#fff_25%,transparent_25%),linear-gradient(-45deg,#fff_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#fff_75%),linear-gradient(-45deg,transparent_75%,#fff_75%)] [background-position:0_0,0_8px,8px_-8px,-8px_0] [background-size:16px_16px]" />
 
       <div className="relative z-10 w-full">
-        <AdminLoginForm hasConfigError={hasConfigError} nextPath={nextPath} />
+        <AdminLoginForm
+          hasAccessError={hasAccessError}
+          hasConfigError={hasConfigError}
+          nextPath={nextPath}
+        />
       </div>
     </main>
   );

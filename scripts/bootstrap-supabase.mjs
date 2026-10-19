@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
@@ -283,34 +283,45 @@ async function ensureBucket() {
 }
 
 async function ensureAdminUser() {
-  const users = await supabase.auth.admin.listUsers({ page: 1, perPage: 1 });
-
-  if (users.error) {
-    throw users.error;
+  const email = (env.SUPABASE_ADMIN_EMAIL || env.ADMIN_EMAIL)?.trim().toLowerCase();
+  if (!email) {
+    throw new Error("Set SUPABASE_ADMIN_EMAIL (or ADMIN_EMAIL) to an existing account before bootstrapping CMS data.");
   }
 
-  if (users.data.users.length > 0) {
-    return null;
+  let page = 1;
+  let account = null;
+  while (!account) {
+    const result = await supabase.auth.admin.listUsers({ page, perPage: 100 });
+    if (result.error) throw result.error;
+    account = result.data.users.find((user) => user.email?.toLowerCase() === email) ?? null;
+    if (result.data.users.length < 100) break;
+    page += 1;
   }
 
-  const email = "admin@prajjwol-bhandari.dev";
-  const password = randomBytes(18).toString("base64url");
-  const created = await supabase.auth.admin.createUser({
-    email,
-    email_confirm: true,
-    password,
-    user_metadata: {
-      role: "admin",
-    },
+  if (!account) {
+    const password = env.SUPABASE_ADMIN_PASSWORD || env.ADMIN_PASSWORD;
+    if (!password || password.length < 12) {
+      throw new Error("Create the admin account in Supabase Auth or set SUPABASE_ADMIN_PASSWORD (12+ characters).");
+    }
+
+    const created = await supabase.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      password,
+      app_metadata: { role: "admin" },
+    });
+    if (created.error) throw created.error;
+    return { email, action: "created" };
+  }
+
+  const promoted = await supabase.auth.admin.updateUserById(account.id, {
+    app_metadata: { ...account.app_metadata, role: "admin" },
   });
-
-  if (created.error) {
-    throw created.error;
-  }
-
-  return { email, password };
+  if (promoted.error) throw promoted.error;
+  return { email, action: "admin-claim-set" };
 }
 
+const admin = await ensureAdminUser();
 const categoryMap = new Map();
 
 for (const category of categories) {
@@ -331,7 +342,6 @@ for (const project of projectTemplates) {
 }
 
 const bucketStatus = await ensureBucket();
-const admin = await ensureAdminUser();
 
 console.log(
   JSON.stringify(
